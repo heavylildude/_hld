@@ -11,6 +11,7 @@ const app = express();
 const port = 3000;
 
 // 3. Set up middleware
+app.use(express.static(__dirname));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cookieParser());
