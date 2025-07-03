@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Apps Management</title>
+    <!-- Styles will be inherited from index.html, so no need for a style block -->
+</head>
+<body>
+
+    <div class="container">
+        <div class="controls-container">
+            <button id="addNewModuleBtn" class="btn-primary" style="display: none;">Add New User App</button>
+            <input type="text" id="searchInput" class="search-input" placeholder="Search by username or PIC...">
+        </div>
+
+        <table id="user-apps-table">
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Admin</th>
+                    <th>Password</th>
+                    <th style="width: 12%;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- User app rows will be injected here -->
+            </tbody>
+        </table>
+
+        <div class="pagination-controls">
+            <button id="prevPageBtn" class="btn-secondary">Previous</button>
+            <span id="pageInfo"></span>
+            <button id="nextPageBtn" class="btn-secondary">Next</button>
+        </div>
+    </div>
+
+    <script>
+        window.initUserAppsModule = () => {
+            const apiUrl = '/api/user_apps';
+            const tableBody = document.querySelector('#user-apps-table tbody');
+            const addNewModuleBtn = document.getElementById('addNewModuleBtn');
+            const searchInput = document.getElementById('searchInput');
+            const prevPageBtn = document.getElementById('prevPageBtn');
+            const nextPageBtn = document.getElementById('nextPageBtn');
+            const pageInfo = document.getElementById('pageInfo');
+
+            let userApps = [];
+            let originalRowHTML = null;
+            let isAddingNew = false;
+            let currentPage = 1;
+            const itemsPerPage = 10;
+
+            const renderTable = (data, pagination) => {
+                tableBody.innerHTML = '';
+                if (data.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No user apps found.</td></tr>';
+                }
+                data.forEach(user => {
+                    const row = document.createElement('tr');
+                    row.dataset.id = user.id;
+                    row.innerHTML = createRowHTML(user);
+                    tableBody.appendChild(row);
+                });
+
+                pageInfo.textContent = `Page ${pagination.currentPage} of ${pagination.totalPages} (${pagination.totalItems} items)`;
+                prevPageBtn.disabled = pagination.currentPage === 1;
+                nextPageBtn.disabled = pagination.currentPage === pagination.totalPages;
+            };
+
+            const filterAndRender = () => {
+                currentPage = 1;
+                fetchAndRender();
+            };
+
+            const createRowHTML = (user) => {
+                const adminRole = user.is_admin === '1' ? 'Superadmin' : user.is_admin === '2' ? 'Regular Admin' : 'Courier';
+                return `
+                    <td>${user.username}</td>
+                    <td><span class="status-${user.is_admin === '1' ? 'active' : 'inactive'}">${adminRole}</span></td>
+                    <td>********</td>
+                    <td class="actions">
+                        <button class="btn-success" data-action="edit">Edit</button>
+                        <button class="btn-danger" data-action="delete">Delete</button>
+                    </td>
+                `;
+            };
+
+            const createEditRowHTML = (user = {}) => {
+                const isNew = !user.id;
+                return `
+                    <td><input type="text" class="table-input" name="username" value="${user.username || ''}" placeholder="Enter username" required></td>
+                    <td>
+                        <select class="table-select" name="is_admin" required>
+                            <option value="1" ${user.is_admin == '1' ? 'selected' : ''}>Superadmin</option>
+                            <option value="2" ${user.is_admin == '2' ? 'selected' : ''}>Regular Admin</option>
+                            <option value="3" ${user.is_admin == '3' || user.is_admin == undefined ? 'selected' : ''}>Courier</option>
+                        </select>
+                    </td>
+                    <td><input type="password" class="table-input" name="password" placeholder="${isNew ? 'Enter password' : 'Leave blank to keep current'}" ${isNew ? 'required' : ''}></td>
+                    <td class="actions">
+                        <button class="btn-primary" data-action="save" data-id="${isNew ? 'null' : user.id}">Save</button>
+                        <button class="btn-secondary" data-action="cancel" data-id="${isNew ? 'null' : user.id}">Cancel</button>
+                    </td>
+                `;
+            };
+
+            tableBody.addEventListener('click', (e) => {
+                const button = e.target.closest('button');
+                if (!button) return;
+
+                const action = button.dataset.action;
+                const row = button.closest('tr');
+                const id = row.dataset.id;
+
+                switch (action) {
+                    case 'edit':
+                        switchToEditMode(row, id);
+                        break;
+                    case 'delete':
+                        deleteUserApp(id);
+                        break;
+                    case 'save':
+                        saveRow(row, button.dataset.id === 'null' ? null : button.dataset.id);
+                        break;
+                    case 'cancel':
+                        cancelEdit(row, button.dataset.id === 'null' ? null : button.dataset.id);
+                        break;
+                }
+            });
+
+            const switchToEditMode = (row, id) => {
+                const user = userApps.find(u => u.id == id);
+                if (!user) return;
+
+                originalRowHTML = row.innerHTML;
+                row.innerHTML = createEditRowHTML(user);
+                row.classList.add('editing-row');
+            };
+
+            const cancelEdit = (row, id) => {
+                if (id === null) {
+                    row.remove();
+                    isAddingNew = false;
+                } else {
+                    row.innerHTML = originalRowHTML;
+                    row.classList.remove('editing-row');
+                    originalRowHTML = null;
+                }
+            };
+
+            addNewModuleBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (isAddingNew) return;
+
+                isAddingNew = true;
+                const newRow = document.createElement('tr');
+                newRow.classList.add('editing-row');
+                newRow.innerHTML = createEditRowHTML();
+                tableBody.prepend(newRow);
+            });
+
+            const saveRow = async (row, id) => {
+                const usernameInput = row.querySelector('input[name="username"]');
+                const passwordInput = row.querySelector('input[name="password"]');
+                const isAdminSelect = row.querySelector('select[name="is_admin"]');
+
+                if (!usernameInput.checkValidity() || !isAdminSelect.checkValidity() || (passwordInput && !passwordInput.checkValidity())) {
+                    alert('Please fill out all required fields correctly.');
+                    return;
+                }
+
+                const userData = {
+                    username: usernameInput.value,
+                    is_admin: isAdminSelect.value
+                };
+
+                // Only include password if it's not empty (for updates) or if it's a new user (required)
+                if (passwordInput && passwordInput.value) {
+                    userData.password = passwordInput.value;
+                }
+
+                const isNew = id === null;
+                const method = isNew ? 'POST' : 'PUT';
+                const url = isNew ? apiUrl : `${apiUrl}/${id}`;
+
+                try {
+                    const response = await fetch(url, {
+                        method: method,
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(userData)
+                    });
+                    if (!response.ok) {
+                        const err = await response.json();
+                        throw new Error(err.message || 'Save operation failed');
+                    }
+                    isAddingNew = false;
+                    fetchAndRender();
+                } catch (error) {
+                    console.error('💀 Save failed:', error);
+                    alert(`Error: ${error.message}`);
+                }
+            };
+
+            const deleteUserApp = async (id) => {
+                if (!confirm('Are you sure you want to delete this user app?')) return;
+                try {
+                    const response = await fetch(`${apiUrl}/${id}`, { method: 'DELETE' });
+                    if (!response.ok) throw new Error('Could not delete user app.');
+                    fetchAndRender();
+                } catch (error) {
+                    console.error('💀 Delete failed:', error);
+                }
+            };
+
+            const fetchAndRender = async () => {
+                try {
+                    const searchTerm = searchInput.value;
+                    const url = `${apiUrl}?page=${currentPage}&limit=${itemsPerPage}&search=${searchTerm}`;
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                    
+                    const result = await response.json();
+                    userApps = result.data;
+                    renderTable(result.data, result.pagination);
+
+                } catch (error) {
+                    console.error('💀 Could not fetch user apps:', error);
+                }
+            };
+
+            prevPageBtn.addEventListener('click', () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    fetchAndRender();
+                }
+            });
+
+            nextPageBtn.addEventListener('click', () => {
+                currentPage++;
+                fetchAndRender();
+            });
+
+            searchInput.addEventListener('input', filterAndRender);
+
+            fetchAndRender();
+        };
+    </script>
+
+</body>
+</html>

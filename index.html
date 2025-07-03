@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HLD Style App</title>
+    <style>
+        :root {
+            --bg-color: #1c1c1c;
+            --primary-color: #262626;
+            --secondary-color: #333;
+            --font-color: #d4d4d4;
+            --accent-color: #007acc;
+            --success-color: #2a9d8f;
+            --danger-color: #e76f51;
+            --warning-color: #f4a261;
+            --border-color: #404040;
+            --menu-bar-color: #1e1e1e;
+            --sidebar-width: 250px; /* Adjusted width */
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--font-color);
+            margin: 0;
+            font-size: 13px;
+            display: flex;
+            flex-direction: column;
+            height: 100vh; /* Full viewport height */
+            overflow: hidden; /* Prevent main scrollbar */
+        }
+        /* --- HLD Menubar --- */
+        .hld-menubar {
+            background-color: var(--menu-bar-color);
+            padding: 0.5rem 1.2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            user-select: none;
+            flex-shrink: 0; /* Don't shrink */
+        }
+        .hld-menubar .left-section {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .hld-menubar .module-name {
+            font-weight: bold;
+            font-size: 0.9rem;
+            cursor: pointer; /* To open sidebar */
+        }
+        .hld-menubar .module-name:hover {
+            color: var(--accent-color);
+        }
+        .hld-menubar .menu-actions a {
+            color: var(--font-color);
+            text-decoration: none;
+            font-size: 0.85rem;
+            padding: 0.2rem 0.5rem;
+            transition: color 0.2s;
+        }
+        .hld-menubar .menu-actions a:hover {
+            color: var(--accent-color);
+            text-decoration: underline;
+        }
+
+        /* --- Main Content Area --- */
+        .main-layout {
+            display: flex;
+            flex-grow: 1; /* Take remaining height */
+            overflow: hidden; /* Hide scrollbars for main layout */
+        }
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--primary-color);
+            border-right: 1px solid var(--border-color);
+            transform: translateX(-100%);
+            transition: transform 0.3s ease-in-out;
+            position: absolute; /* Overlay content */
+            height: 100%;
+            z-index: 100;
+            padding-top: 1rem;
+        }
+        .sidebar.open {
+            transform: translateX(0);
+        }
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .sidebar li a {
+            display: block;
+            padding: 0.75rem 1.2rem;
+            color: var(--font-color);
+            text-decoration: none;
+            transition: background-color 0.2s;
+        }
+        .sidebar li a:hover {
+            background-color: var(--secondary-color);
+        }
+        .content-area {
+            flex-grow: 1;
+            padding: 1.2rem;
+            overflow-y: auto; /* Scroll for content */
+            position: relative; /* For module content */
+        }
+
+        /* --- Module Specific Styles (will be loaded into content-area) --- */
+        /* These styles are copied from supplier.html for consistency */
+        button {
+            padding: 0.4rem 0.8rem;
+            border: 1px solid transparent;
+            color: white;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+        .btn-primary { background-color: var(--accent-color); border-color: var(--accent-color); }
+        .btn-primary:hover { background-color: #005a99; }
+        .btn-success { background-color: var(--success-color); }
+        .btn-success:hover { background-color: #248a7f; }
+        .btn-danger { background-color: var(--danger-color); }
+        .btn-danger:hover { background-color: #d66043; }
+        .btn-secondary { background-color: var(--secondary-color); }
+        .btn-secondary:hover { background-color: #444; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: var(--primary-color);
+        }
+        th, td {
+            padding: 0.6rem;
+            text-align: left;
+            border: 1px solid var(--border-color);
+        }
+        th {
+            background-color: var(--secondary-color);
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        tr.editing-row {
+            background-color: #2c3e50;
+        }
+        .status-active { color: var(--success-color); font-weight: bold; }
+        .status-inactive { color: var(--danger-color); font-weight: bold; }
+        .actions { display: flex; gap: 0.4rem; }
+        
+        .controls-container {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.2rem;
+        }
+        .search-input, .filter-select {
+            padding: 0.5rem;
+            border: 1px solid var(--border-color);
+            background-color: var(--primary-color);
+            color: var(--font-color);
+            font-size: 0.9rem;
+        }
+        .search-input {
+            flex-grow: 1;
+        }
+        .table-input, .table-select, .table-textarea {
+            width: 100%;
+            padding: 0;
+            border: none;
+            background-color: transparent;
+            color: var(--font-color);
+            font-size: inherit;
+            font-family: inherit;
+            box-sizing: border-box;
+        }
+        .table-input:focus, .table-select:focus, .table-textarea:focus {
+            outline: none;
+            background-color: rgba(0,0,0,0.2);
+        }
+        .table-textarea {
+            resize: vertical;
+            min-height: 3em;
+        }
+        .pagination-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 1.2rem;
+            padding: 0.8rem;
+            background-color: var(--primary-color);
+            border: 1px solid var(--border-color);
+        }
+        .pagination-controls button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .pagination-controls span {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <header class="hld-menubar">
+        <div class="left-section">
+            <div class="module-name" id="currentModuleName">Supplier</div>
+            <div class="menu-actions">
+                <a href="#" id="addNewLink">Add New</a>
+            </div>
+        </div>
+        <div class="right-section">
+            <span id="currentUser" style="margin-right: 1rem;"></span>
+            <a href="#" id="logoutLink">Logout</a>
+        </div>
+    </header>
+
+    <div class="main-layout">
+        <aside class="sidebar" id="sidebar">
+            <ul>
+                <li><a href="#" data-module="supplier">Supplier</a></li>
+                <li id="userAppsSidebarLink" style="display: none;"><a href="#" data-module="user_apps">Users</a></li>
+                <li><a href="#" data-module="purchase_order">Purchase Order</a></li>
+            </ul>
+        </aside>
+        <main class="content-area" id="contentArea">
+            <!-- Module content will be loaded here -->
+        </main>
+    </div>
+
+    <script>
+        const currentModuleName = document.getElementById('currentModuleName');
+        const sidebar = document.getElementById('sidebar');
+        const contentArea = document.getElementById('contentArea');
+        const addNewLink = document.getElementById('addNewLink');
+        const logoutLink = document.getElementById('logoutLink');
+        const currentUserSpan = document.getElementById('currentUser');
+
+        let activeModuleScript = null;
+
+        const loadModule = async (moduleName, displayName) => {
+            try {
+                if (activeModuleScript) {
+                    activeModuleScript.remove();
+                    activeModuleScript = null;
+                }
+
+                const response = await fetch(`/modules/${moduleName}.html`);
+                if (!response.ok) throw new Error(`Failed to load module: ${moduleName}`);
+                
+                const html = await response.text();
+                contentArea.innerHTML = html;
+
+                const scriptElement = contentArea.querySelector('script');
+                if (scriptElement) {
+                    const newScript = document.createElement('script');
+                    newScript.textContent = scriptElement.textContent;
+                    contentArea.appendChild(newScript);
+                    activeModuleScript = newScript;
+
+                    const initFunctionName = `init${moduleName.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join('')}Module`;
+                    if (typeof window[initFunctionName] === 'function') {
+                        window[initFunctionName]();
+                    }
+                }
+
+                const formattedModuleName = displayName || moduleName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                currentModuleName.textContent = formattedModuleName;
+                document.title = `>_ ${formattedModuleName}`;
+                sidebar.classList.remove('open');
+
+            } catch (error) {
+                console.error('💀 Error loading module:', error);
+                contentArea.innerHTML = `<p style="color: var(--danger-color);">Error loading module: ${moduleName}</p>`;
+            }
+        };
+
+        const fetchCurrentUser = async () => {
+            try {
+                const response = await fetch('/api/current_user');
+                if (response.ok) {
+                    const user = await response.json();
+                    currentUserSpan.textContent = `Welcome, ${user.username}`;
+                    const userAppsLink = document.getElementById('userAppsSidebarLink');
+                    if (user.is_admin === '1') {
+                        userAppsLink.style.display = 'block';
+                    } else {
+                        userAppsLink.style.display = 'none';
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching current user:', error);
+            }
+        };
+
+        currentModuleName.addEventListener('click', () => {
+            sidebar.classList.toggle('open');
+        });
+
+        sidebar.addEventListener('click', (e) => {
+            if (e.target.tagName === 'A') {
+                e.preventDefault();
+                const moduleName = e.target.dataset.module;
+                const displayName = e.target.textContent;
+                if (moduleName) {
+                    loadModule(moduleName, displayName);
+                }
+            }
+        });
+
+        addNewLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            const addNewBtn = contentArea.querySelector('#addNewModuleBtn');
+            if (addNewBtn) {
+                addNewBtn.click();
+            } else {
+                console.warn('Add New button not found in the current module.');
+            }
+        });
+
+        logoutLink.addEventListener('click', async (e) => {
+            e.preventDefault();
+            try {
+                await fetch('/logout', { method: 'POST' });
+                window.location.href = '/login';
+            } catch (error) {
+                console.error('Logout failed:', error);
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchCurrentUser();
+            loadModule('supplier', 'Supplier');
+        });
+    </script>
+
+</body>
+</html>

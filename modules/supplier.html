@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supplier Management</title>
+    <style>
+        :root {
+            --bg-color: #1c1c1c;
+            --primary-color: #262626;
+            --secondary-color: #333;
+            --font-color: #d4d4d4;
+            --accent-color: #007acc;
+            --success-color: #2a9d8f;
+            --danger-color: #e76f51;
+            --warning-color: #f4a261;
+            --border-color: #404040;
+            --menu-bar-color: #1e1e1e;
+            --menu-hover-color: #3c3c3c;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--font-color);
+            margin: 0;
+            font-size: 13px;
+        }
+                /* --- Global Menu Bar --- */
+        .menu-bar {
+            background-color: var(--menu-bar-color);
+            padding: 0.5rem 1.2rem; /* Added vertical padding */
+            display: flex;
+            justify-content: flex-start; /* Align to the left */
+            align-items: center;
+            gap: 1rem; /* Space between title and action */
+            border-bottom: 1px solid var(--border-color);
+            user-select: none;
+        }
+        .app-title {
+            font-weight: bold; /* Bolder title */
+            font-size: 0.9rem;
+        }
+        .menu-actions a {
+            color: var(--font-color);
+            text-decoration: none;
+            font-size: 0.85rem;
+            padding: 0.2rem 0.5rem;
+            transition: color 0.2s;
+        }
+        .menu-actions a:hover {
+            color: var(--accent-color);
+            text-decoration: underline;
+        }
+
+        .container {
+            padding: 1.2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .controls-container {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.2rem;
+        }
+        .search-input, .filter-select {
+            padding: 0.5rem;
+            border: 1px solid var(--border-color);
+            background-color: var(--primary-color);
+            color: var(--font-color);
+            font-size: 0.9rem;
+        }
+        .search-input {
+            flex-grow: 1;
+        }
+        button {
+            padding: 0.4rem 0.8rem;
+            border: 1px solid transparent;
+            color: white;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+        .btn-primary { background-color: var(--accent-color); border-color: var(--accent-color); }
+        .btn-primary:hover { background-color: #005a99; }
+        .btn-success { background-color: var(--success-color); }
+        .btn-success:hover { background-color: #248a7f; }
+        .btn-danger { background-color: var(--danger-color); }
+        .btn-danger:hover { background-color: #d66043; }
+        .btn-secondary { background-color: var(--secondary-color); }
+        .btn-secondary:hover { background-color: #444; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: var(--primary-color);
+        }
+        th, td {
+            padding: 0.6rem;
+            text-align: left;
+            border: 1px solid var(--border-color);
+        }
+        th {
+            background-color: var(--secondary-color);
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        tr.editing-row {
+            background-color: #2c3e50;
+        }
+        .status-active { color: var(--success-color); font-weight: bold; }
+        .status-inactive { color: var(--danger-color); font-weight: bold; }
+        .actions { display: flex; gap: 0.4rem; }
+        
+        .pagination-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 1.2rem;
+            padding: 0.8rem;
+            background-color: var(--primary-color);
+            border: 1px solid var(--border-color);
+        }
+        .pagination-controls button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .pagination-controls span {
+            font-weight: bold;
+        }
+
+        /* Styles for inputs inside the table */
+        .table-input, .table-select, .table-textarea {
+            width: 100%;
+            padding: 0;
+            border: none;
+            background-color: transparent;
+            color: var(--font-color);
+            font-size: inherit;
+            font-family: inherit;
+            box-sizing: border-box;
+        }
+        .table-input:focus, .table-select:focus, .table-textarea:focus {
+            outline: none;
+            background-color: rgba(0,0,0,0.2);
+        }
+        .table-textarea {
+            resize: vertical;
+            min-height: 3em;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="controls-container">
+			<button id="addNewModuleBtn" class="btn-primary" style="display: none;">Add New Supplier</button>
+            <input type="text" id="searchInput" class="search-input" placeholder="Search suppliers...">
+            <select id="statusFilter" class="filter-select">
+                <option value="all">All Statuses</option>
+                <option value="1">Active</option>
+                <option value="0">Inactive</option>
+            </select>
+        </div>
+
+        <table id="supplier-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th style="width: 30%;">Address</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th style="width: 8%;">Status</th>
+                    <th style="width: 12%;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Supplier rows will be injected here -->
+            </tbody>
+        </table>
+
+        <div class="pagination-controls">
+            <button id="prevPageBtn" class="btn-secondary">Previous</button>
+            <span id="pageInfo"></span>
+            <button id="nextPageBtn" class="btn-secondary">Next</button>
+        </div>
+    </div>
+
+    <script>
+        // Wrap all module-specific logic in an initialization function
+        window.initSupplierModule = () => {
+            const apiUrl = '/api/suppliers';
+            const tableBody = document.querySelector('#supplier-table tbody');
+            const addNewModuleBtn = document.getElementById('addNewModuleBtn');
+            const searchInput = document.getElementById('searchInput');
+            const statusFilter = document.getElementById('statusFilter');
+            const prevPageBtn = document.getElementById('prevPageBtn');
+            const nextPageBtn = document.getElementById('nextPageBtn');
+            const pageInfo = document.getElementById('pageInfo');
+
+            // --- DATA & STATE ---
+            let suppliers = []; // This will hold the master list from the server
+            let originalRowHTML = null;
+            let isAddingNew = false;
+            let currentPage = 1;
+            const itemsPerPage = 10; // You can adjust this
+
+            // --- RENDER & FILTERING ---
+            const renderTable = (data, pagination) => {
+                tableBody.innerHTML = '';
+                if (data.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No suppliers found.</td></tr>';
+                }
+                data.forEach(supplier => {
+                    const row = document.createElement('tr');
+                    row.dataset.id = supplier.id;
+                    row.innerHTML = createRowHTML(supplier);
+                    tableBody.appendChild(row);
+                });
+
+                // Update pagination controls
+                pageInfo.textContent = `Page ${pagination.currentPage} of ${pagination.totalPages} (${pagination.totalItems} items)`;
+                prevPageBtn.disabled = pagination.currentPage === 1;
+                nextPageBtn.disabled = pagination.currentPage === pagination.totalPages;
+            };
+
+            const filterAndRender = () => {
+                currentPage = 1; // Reset to first page on new filter/search
+                fetchAndRender();
+            };
+
+            const createRowHTML = (supplier) => `
+                <td>${supplier.supplier_name}</td>
+                <td>${supplier.supplier_address}</td>
+                <td>${supplier.supplier_email}</td>
+                <td>${supplier.supplier_phone}</td>
+                <td><span class="status-${supplier.status == 1 ? 'active' : 'inactive'}">${supplier.status == 1 ? 'Active' : 'Inactive'}</span></td>
+                <td class="actions">
+                    <button class="btn-success" data-action="edit">Edit</button>
+                    <button class="btn-danger" data-action="delete">Delete</button>
+                </td>
+            `;
+
+            const createEditRowHTML = (supplier = {}) => {
+                const isNew = !supplier.id;
+                return `
+                    <td><input type="text" class="table-input" name="supplier_name" value="${supplier.supplier_name || ''}" placeholder="Enter..." required></td>
+                    <td><textarea class="table-textarea" name="supplier_address" placeholder="Enter..." required>${supplier.supplier_address || ''}</textarea></td>
+                    <td><input type="email" class="table-input" name="supplier_email" value="${supplier.supplier_email || ''}" placeholder="Enter..." required></td>
+                    <td><input type="tel" class="table-input" name="supplier_phone" value="${supplier.supplier_phone || ''}" placeholder="Enter..." required></td>
+                    <td>
+                        <select class="table-select" name="status" required>
+                            <option value="1" ${supplier.status == 1 ? 'selected' : ''}>Active</option>
+                            <option value="0" ${supplier.status == 0 ? 'selected' : ''}>Inactive</option>
+                        </select>
+                    </td>
+                    <td class="actions">
+                        <button class="btn-primary" data-action="save" data-id="${isNew ? 'null' : supplier.id}">Save</button>
+                        <button class="btn-secondary" data-action="cancel" data-id="${isNew ? 'null' : supplier.id}">Cancel</button>
+                    </td>
+                `;
+            };
+
+            // --- EVENT DELEGATION ---
+            tableBody.addEventListener('click', (e) => {
+                const button = e.target.closest('button');
+                if (!button) return;
+
+                const action = button.dataset.action;
+                const row = button.closest('tr');
+                const id = row.dataset.id;
+
+                switch (action) {
+                    case 'edit':
+                        switchToEditMode(row, id);
+                        break;
+                    case 'delete':
+                        deleteSupplier(id);
+                        break;
+                    case 'save':
+                        saveRow(row, button.dataset.id === 'null' ? null : button.dataset.id);
+                        break;
+                    case 'cancel':
+                        cancelEdit(row, button.dataset.id === 'null' ? null : button.dataset.id);
+                        break;
+                }
+            });
+
+            const switchToEditMode = (row, id) => {
+                const supplier = suppliers.find(s => s.id == id);
+                if (!supplier) return;
+
+                originalRowHTML = row.innerHTML;
+                row.innerHTML = createEditRowHTML(supplier);
+                row.classList.add('editing-row');
+            };
+
+            const cancelEdit = (row, id) => {
+                if (id === null) {
+                    row.remove();
+                    isAddingNew = false;
+                } else {
+                    row.innerHTML = originalRowHTML;
+                    row.classList.remove('editing-row');
+                    originalRowHTML = null;
+                }
+            };
+
+            addNewModuleBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (isAddingNew) return; // Prevent adding multiple new rows
+
+                isAddingNew = true;
+                const newRow = document.createElement('tr');
+                newRow.classList.add('editing-row');
+                newRow.innerHTML = createEditRowHTML();
+                tableBody.prepend(newRow);
+            });
+
+            const saveRow = async (row, id) => {
+                const inputs = row.querySelectorAll('input, select, textarea');
+                const supplierData = {};
+                let isValid = true;
+                inputs.forEach(input => {
+                    if (!input.checkValidity()) isValid = false;
+                    supplierData[input.name] = input.value;
+                });
+
+                if (!isValid) {
+                    alert('Please fill out all fields correctly.');
+                    return;
+                }
+
+                const isNew = id === null;
+                const method = isNew ? 'POST' : 'PUT';
+                const url = isNew ? apiUrl : `${apiUrl}/${id}`;
+
+                try {
+                    const response = await fetch(url, {
+                        method: method,
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(supplierData)
+                    });
+                    if (!response.ok) {
+                        const err = await response.json();
+                        throw new Error(err.message || 'Save operation failed');
+                    }
+                    isAddingNew = false;
+                    fetchAndRender();
+                } catch (error) {
+                    console.error('💀 Save failed:', error);
+                    alert(`Error: ${error.message}`);
+                }
+            };
+
+            const deleteSupplier = async (id) => {
+                if (!confirm('Are you sure you want to delete this supplier?')) return;
+                try {
+                    const response = await fetch(`${apiUrl}/${id}`, { method: 'DELETE' });
+                    if (!response.ok) throw new Error('Could not delete supplier.');
+                    fetchAndRender();
+                } catch (error) {
+                    console.error('💀 Delete failed:', error);
+                }
+            };
+
+            const fetchAndRender = async () => {
+                try {
+                    const searchTerm = searchInput.value;
+                    const status = statusFilter.value;
+
+                    const url = `${apiUrl}?page=${currentPage}&limit=${itemsPerPage}&search=${searchTerm}&status=${status}`;
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                    
+                    const result = await response.json();
+                    suppliers = result.data; // Update the local suppliers array with the current page's data
+                    renderTable(result.data, result.pagination);
+
+                } catch (error) {
+                    console.error('💀 Could not fetch suppliers:', error);
+                }
+            };
+
+            // --- PAGINATION EVENT LISTENERS ---
+            prevPageBtn.addEventListener('click', () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    fetchAndRender();
+                }
+            });
+
+            nextPageBtn.addEventListener('click', () => {
+                currentPage++;
+                fetchAndRender();
+            });
+
+            searchInput.addEventListener('input', filterAndRender);
+            statusFilter.addEventListener('change', filterAndRender);
+
+            // Initial load
+            fetchAndRender();
+        };
+    </script>
+
+</body>
+</html>
